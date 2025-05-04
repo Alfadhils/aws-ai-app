@@ -14,7 +14,7 @@ api_key = os.getenv("API_KEY")
 # Load labels from CSV
 @st.cache_data
 def load_labels():
-    return pd.read_csv("AmazonRekognitionBoundingBoxLabels_v3.0.csv")["Label"].tolist()
+    return pd.read_csv("assets/AmazonRekognitionBoundingBoxLabels_v3.0.csv")["Label"].tolist()
 
 st.title("🖼️ Amazon Rekognition – Image Object Detection")
 
