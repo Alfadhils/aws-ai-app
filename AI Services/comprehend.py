@@ -1,10 +1,5 @@
 import streamlit as st
 import requests
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-api_key = os.getenv("API_KEY")
 
 st.title("🧠 Amazon Comprehend – Sentiment & Entity Detection")
 
@@ -21,8 +16,8 @@ analyze_button = st.button("Analyze", disabled=not input_text.strip())
 if analyze_button:
     with st.spinner("Analyzing text..."):
         try:
-            api_url = "https://nucadh7rm4.execute-api.ap-southeast-1.amazonaws.com/prod/comprehend"
-            headers = {"x-api-key": api_key}
+            api_url = f"{st.secrets['API_URL']}/comprehend"
+            headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
             payload = {"text": input_text}
             response = requests.post(api_url, json=payload, headers=headers)
 

@@ -2,11 +2,7 @@ import streamlit as st
 import requests
 import base64
 import tempfile
-from dotenv import load_dotenv
 import os
-
-load_dotenv()
-api_key = os.getenv("API_KEY")
 
 # Title and description
 st.title("🎤 Amazon Polly – Text to Speech")
@@ -72,8 +68,8 @@ if generate_btn:
             "engine": "neural"
         }
 
-        api_url = "https://nucadh7rm4.execute-api.ap-southeast-1.amazonaws.com/prod/polly"
-        headers = {"x-api-key": api_key}
+        api_url = f"{st.secrets['API_URL']}/polly"
+        headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
         response = requests.post(api_url, json=payload, headers=headers)
 
         if response.ok:

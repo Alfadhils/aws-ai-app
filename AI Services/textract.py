@@ -4,11 +4,7 @@ from pdf2image import convert_from_bytes
 import requests
 import base64
 import io
-from dotenv import load_dotenv
 import os
-
-load_dotenv()
-api_key = os.getenv("API_KEY")
 
 st.title("📄 Amazon Textract – Invoice Text Extraction")
 
@@ -38,8 +34,8 @@ if uploaded_file:
             image_base64 = base64.b64encode(buffered.getvalue()).decode()
 
             # Send to API
-            api_url = "https://nucadh7rm4.execute-api.ap-southeast-1.amazonaws.com/prod/textract"
-            headers = {"x-api-key": api_key}
+            api_url = f"{st.secrets['API_URL']}/textract"
+            headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
             payload = {"image_base64": image_base64}
             response = requests.post(api_url, json=payload, headers=headers)
 

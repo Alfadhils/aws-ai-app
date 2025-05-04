@@ -2,11 +2,6 @@ import streamlit as st
 import requests
 import base64
 from audio_recorder_streamlit import audio_recorder
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-api_key = os.getenv("API_KEY")
 
 st.title("🎙️ Amazon Transcribe – Audio Transcription")
 
@@ -22,9 +17,9 @@ def transcribe_audio(audio_bytes):
     audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
 
     # POST request to the Transcribe API
-    api_url = "https://nucadh7rm4.execute-api.ap-southeast-1.amazonaws.com/prod/transcribe"
+    api_url = f"{st.secrets['API_URL']}/transcribe"
     payload = {"audio_base64": audio_base64}
-    headers = {"x-api-key": api_key}
+    headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
     response = requests.post(api_url, json=payload, headers=headers)
     
     if response.ok:
@@ -41,9 +36,9 @@ def transcribe_audio(audio_bytes):
 # Function to check the status of the transcription job
 def check_job_status(job_code):
     # GET request to check job status
-    api_url = f"https://nucadh7rm4.execute-api.ap-southeast-1.amazonaws.com/prod/transcribe"
+    api_url = f"{st.secrets['API_URL']}/transcribe"
     payload = {"file_name": job_code}
-    headers = {"x-api-key": api_key}
+    headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
     response = requests.get(api_url, json=payload, headers=headers)
     
     if response.ok:

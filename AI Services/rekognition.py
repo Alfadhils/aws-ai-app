@@ -5,11 +5,7 @@ import base64
 from PIL import Image, ImageDraw, ImageOps
 from io import BytesIO
 from PIL import ImageFont
-from dotenv import load_dotenv
 import os
-
-load_dotenv()
-api_key = os.getenv("API_KEY")
 
 # Load labels from CSV
 @st.cache_data
@@ -38,12 +34,12 @@ if uploaded_file and selected_labels and st.button("Analyze Image"):
     image_base64 = base64.b64encode(image_bytes).decode()
 
     # Send to API Gateway
-    api_url = "https://nucadh7rm4.execute-api.ap-southeast-1.amazonaws.com/prod/rekognition"
+    api_url = f"{st.secrets['API_URL']}/rekognition"
     payload = {
         "image_base64": image_base64,
         "selected_labels": selected_labels
     }
-    headers = {"x-api-key": api_key}
+    headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
 
     with st.spinner("Analyzing Image..."):
         response = requests.post(api_url, json=payload, headers=headers)
