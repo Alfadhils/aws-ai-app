@@ -2,10 +2,8 @@ import streamlit as st
 import pandas as pd
 import requests
 import base64
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw
 from io import BytesIO
-from PIL import ImageFont
-import os
 
 # Load labels from CSV
 @st.cache_data
@@ -26,55 +24,53 @@ valid_labels = load_labels()
 selected_labels = st.multiselect("Select expected labels (for validation)", valid_labels)
 
 if uploaded_file:
-    st.image(uploaded_file, caption="Uploaded image preview", use_container_width=True)
-
-# Submit
-if uploaded_file and selected_labels and st.button("Analyze Image"):
-    image_bytes = uploaded_file.read()
-    image_base64 = base64.b64encode(image_bytes).decode()
-
-    # Send to API Gateway
-    api_url = f"{st.secrets['API_URL']}/rekognition"
-    payload = {
-        "image_base64": image_base64,
-        "selected_labels": selected_labels
-    }
-    headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
-
-    with st.spinner("Analyzing Image..."):
-        response = requests.post(api_url, json=payload, headers=headers)
+    # Show preview
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="Uploaded image preview", use_container_width=True)
     
-    if response.status_code != 200:
-        st.error(f"API Error: {response.text}")
-    else:
-        result = response.json()
-        labels = result.get("labels", [])
+    # Submit button
+    if st.button("Analyze Image"):
+        with st.spinner("Analyzing Image..."):
+            # Encode image to base64
+            buffered = BytesIO()
+            image.save(buffered, format="JPEG")
+            image_base64 = base64.b64encode(buffered.getvalue()).decode()
 
-        image = Image.open(BytesIO(image_bytes))
-        image = ImageOps.exif_transpose(image).convert("RGB")
-        draw = ImageDraw.Draw(image)
-        width, height = image.size
+            # Send to rekognition API endpoint
+            api_url = f"{st.secrets['API_URL']}/rekognition"
+            headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
+            payload = {"image_base64": image_base64, "selected_labels": selected_labels}
+            response = requests.post(api_url, json=payload, headers=headers)
+            
+            if response.ok:
+                result = response.json()
+                labels = result.get("labels", [])
 
-        for label in labels:
-            for instance in label.get("Instances", []):
-                box = instance["BoundingBox"]
-                left = box["Left"] * width
-                top = box["Top"] * height
-                w = box["Width"] * width
-                h = box["Height"] * height
-                draw.rectangle([left, top, left + w, top + h], outline="black", width=4)
-                draw.rectangle([left+1, top+1, left + w - 1, top + h - 1], outline="white", width=2)
-                font_size = 25  # Adjust font size as needed
-                try:
-                    font = ImageFont.truetype("arial.ttf", font_size)
-                except IOError:
-                    font = None  # Fallback if the font is not available
-                draw.text((left, top), label["Name"], fill="white", stroke_width=1, stroke_fill="black", font=font)
+                draw_image = image.copy()
+                draw = ImageDraw.Draw(draw_image)
+                width, height = draw_image.size
+
+                # Draw bounding boxes and labels
+                for label in labels:
+                    for instance in label.get("Instances", []):
+                        box = instance["BoundingBox"]
+                        x0 = box["Left"] * width
+                        y0 = box["Top"] * height
+                        x1 = x0 + box["Width"] * width
+                        y1 = y0 + box["Height"] * height
+                        
+                        draw.rectangle([x0, y0, x1, y1], outline="black", width=3)
+                        draw.rectangle([x0+1, y0+1, x1-1, y1-1], outline="white", width=1)
+                        draw.text((x0 + 2, y0 - 12), label["Name"], fill="white", stroke_width=1, stroke_fill="black")
+                        
+                # Show image with boxes
+                st.image(draw_image, caption="Detected objects with bounding boxes", use_container_width=True)
                 
-
-        st.image(image, caption="Detected objects with bounding boxes", use_container_width=True)
-        
-        st.subheader("Detected Labels")
-        for label in labels:
-            st.write(f"**{label['Name']}**: {label['Confidence']:.2f}%")
+                # Display detected labels
+                st.subheader("Detected Labels")
+                for label in labels:
+                    st.write(f"• **{label['Name']}** (Confidence: {label['Confidence']:.2f}%)")
+                    
+            else:
+                st.error("Error analyzing image. Please try again.")
 

@@ -11,7 +11,7 @@ This app lets you synthesize text to speech using **Amazon Polly**.
 Select a language and voice, enter your text, and listen to the synthesized audio.
 """)
 
-# Language and corresponding voices
+# Predefined voice options for different languages
 voice_options = {
     "en-AU": {
         "label": "English, Australian",
@@ -56,20 +56,20 @@ voice_id = available_voices[voice_label]
 # Text input
 text_input = st.text_area("Enter text to synthesize:", height=150)
 
-# Generate button (disabled when text is empty)
+# Generate button
 generate_btn = st.button("Generate Speech", disabled=not text_input.strip())
 
 if generate_btn:
     with st.spinner("Synthesizing text..."):
+        # Send to polly API endpoint
+        api_url = f"{st.secrets['API_URL']}/polly"
+        headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
         payload = {
             "text": text_input,
             "language_code": language_code,
             "voice_id": voice_id,
             "engine": "neural"
         }
-
-        api_url = f"{st.secrets['API_URL']}/polly"
-        headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
         response = requests.post(api_url, json=payload, headers=headers)
 
         if response.ok:
@@ -84,5 +84,6 @@ if generate_btn:
 
             st.audio(audio_path)
             os.remove(audio_path)
+            
         else:
-            st.error("Failed to generate speech. Please try again later.")
+            st.error("Error synthesizing speech. Please try again.")

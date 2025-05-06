@@ -3,45 +3,45 @@ import requests
 
 st.title("🧠 Amazon Comprehend – Sentiment & Entity Detection")
 
-# Overview Section
-st.markdown("Enter a sentence or paragraph below to analyze its **sentiment** and **named entities**.")
+st.markdown("""
+Enter a sentence or paragraph below to analyze its **sentiment** and **named entities**.
+""")
 
 # Text input
 input_text = st.text_area("Input Text", height=150)
 
-# Disable analyze button if input is empty
+# Analyze button
 analyze_button = st.button("Analyze", disabled=not input_text.strip())
 
-# Run only when button clicked
 if analyze_button:
     with st.spinner("Analyzing text..."):
-        try:
-            api_url = f"{st.secrets['API_URL']}/comprehend"
-            headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
-            payload = {"text": input_text}
-            response = requests.post(api_url, json=payload, headers=headers)
+        # Send to comprehend API endpoint
+        api_url = f"{st.secrets['API_URL']}/comprehend"
+        headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
+        payload = {"text": input_text}
+        response = requests.post(api_url, json=payload, headers=headers)
 
-            if response.ok:
-                data = response.json()
+        if response.ok:
+            result = response.json()
 
-                # Display sentiment
-                st.subheader("🔍 Sentiment Analysis")
-                st.markdown(f"**Sentiment:** `{data.get('sentiment', 'Unknown')}`")
-                st.markdown("**Confidence Scores:**")
-                for k, v in data.get("sentiment_score", {}).items():
-                    st.write(f"- {k}: {v:.2f}")
+            # Display sentiment
+            st.subheader("Sentiment Analysis")
+            st.markdown(f"**Sentiment:** `{result.get('sentiment', 'Unknown')}`")
+            st.markdown("**Confidence Scores:**")
+            for k, v in result.get("sentiment_score", {}).items():
+                st.write(f"- {k}: {v:.2f}")
 
-                # Display entities
-                st.subheader("📌 Detected Entities")
-                entities = data.get("entities", [])
-                if entities:
-                    for ent in entities:
-                        st.markdown(
-                            f"- **{ent.get('Text')}** — *{ent.get('Type')}* (Score: {ent.get('Score'):.2f})"
-                        )
-                else:
-                    st.info("No entities detected.")
+            # Display entities
+            st.subheader("Detected Entities")
+            entities = result.get("entities", [])
+            if entities:
+                for ent in entities:
+                    st.markdown(
+                        f"- **{ent.get('Text')}** — *{ent.get('Type')}* (Score: {ent.get('Score'):.2f})"
+                    )
             else:
-                st.error("Failed to analyze text. Please try again.")
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+                st.info("No entities detected.")
+                
+        else:
+            st.error("Failed to analyze text. Please try again.")
+

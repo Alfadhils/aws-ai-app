@@ -5,7 +5,6 @@ from audio_recorder_streamlit import audio_recorder
 
 st.title("🎙️ Amazon Transcribe – Audio Transcription")
 
-# Overview Section
 st.markdown("""
 This tool allows you to record audio, submit it for transcription, and retrieve the transcription result. 
 Once you record and submit the audio, a transcription job is initiated, and you can check the status using the job code.
@@ -13,10 +12,9 @@ Once you record and submit the audio, a transcription job is initiated, and you 
 
 # Function to upload audio to Transcribe service
 def transcribe_audio(audio_bytes):
-    # Convert audio to base64
     audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
 
-    # POST request to the Transcribe API
+    # Send to Transcribe API endpoint
     api_url = f"{st.secrets['API_URL']}/transcribe"
     payload = {"audio_base64": audio_base64}
     headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
@@ -24,9 +22,11 @@ def transcribe_audio(audio_bytes):
     
     if response.ok:
         response_data = response.json()
-        job_code = response_data.get("file_name")
-        if job_code and job_code.endswith(".mp3"):
-            job_code = job_code[:-4]  # Remove the .mp3 suffix
+        
+        # Return job code from response
+        file_name = response_data.get("file_name")
+        if file_name and file_name.endswith(".mp3"):
+            job_code = file_name[:-4]
         st.success(f"Transcription job initiated successfully! **Please store the job code as it will not be displayed again.** Job code: {job_code}")
         return job_code
     else:
@@ -35,18 +35,22 @@ def transcribe_audio(audio_bytes):
 
 # Function to check the status of the transcription job
 def check_job_status(job_code):
-    # GET request to check job status
+    
+    # Send to Transcribe Fetch API endpoint
     api_url = f"{st.secrets['API_URL']}/transcribe"
-    payload = {"file_name": job_code}
+    payload = {"job_code": job_code}
     headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
     response = requests.get(api_url, json=payload, headers=headers)
     
     if response.ok:
         job_status = response.json()
+        
+        # Return transcription result from response
         transcription = job_status.get("transcription", "No transcription found.")
         return transcription
     else:
-        st.error("Failed to fetch transcription status.")
+        job_status = response.json()
+        st.error(job_status.get("error", "Failed to fetch transcription status."))
         return None
 
 # Audio Recording Section
@@ -67,6 +71,7 @@ st.subheader("Step 2: Check Job Status")
 job_code_input = st.text_input("Enter Transcription Job Code")
 if job_code_input:
     if st.button("Check Status"):
+        # Retrieve transcription result using job code
         transcription = check_job_status(job_code_input)
         if transcription:
             st.markdown(f"### Transcription Result: \n\n{transcription}")

@@ -4,7 +4,6 @@ from pdf2image import convert_from_bytes
 import requests
 import base64
 import io
-import os
 
 st.title("📄 Amazon Textract – Invoice Text Extraction")
 
@@ -12,13 +11,12 @@ st.markdown("""
 Upload an image or scanned PDF of an invoice. This tool uses **Amazon Textract** to detect raw texts and visualize them with bounding boxes.
 """)
 
-# Upload file
+# Upload document
 uploaded_file = st.file_uploader("Upload Invoice Image or PDF", type=["jpg", "jpeg", "png", "pdf"])
 
 if uploaded_file:
     # Show preview
     if uploaded_file.type == "application/pdf":
-        # Convert first page of PDF to image
         images = convert_from_bytes(uploaded_file.read(), first_page=1, last_page=1)
         image = images[0]
         st.image(image, caption="First Page of Uploaded PDF", use_container_width=True)
@@ -26,6 +24,7 @@ if uploaded_file:
         image = Image.open(uploaded_file).convert("RGB")
         st.image(image, caption="Uploaded Invoice", use_container_width=True)
 
+    # Submit button
     if st.button("Extract Text"):
         with st.spinner("Analyzing Document..."):
             # Encode image to base64
@@ -33,7 +32,7 @@ if uploaded_file:
             image.save(buffered, format="JPEG")
             image_base64 = base64.b64encode(buffered.getvalue()).decode()
 
-            # Send to API
+            # Send to textract API endpoint
             api_url = f"{st.secrets['API_URL']}/textract"
             headers = {"x-api-key": st.secrets["API_KEY"]} if st.secrets["API_KEY"] else {}
             payload = {"image_base64": image_base64}
@@ -43,11 +42,11 @@ if uploaded_file:
                 result = response.json()
                 text_blocks = result.get("text_blocks", [])
 
-                # Draw boxes
                 draw_image = image.copy()
                 draw = ImageDraw.Draw(draw_image)
                 width, height = draw_image.size
 
+                # Draw bounding boxes and labels
                 for block in text_blocks:
                     box = block["BoundingBox"]
                     text = block["Text"]
@@ -66,9 +65,10 @@ if uploaded_file:
                 # Show image with boxes
                 st.image(draw_image, caption="Detected Text with Bounding Boxes", use_container_width=True)
 
-                # Show list of texts
-                st.markdown("### 📝 Detected Text")
+                # Show detected texts
+                st.subheader("Detected Texts")
                 for block in text_blocks:
                     st.write(f"• **{block['Text']}** (Confidence: {block['Confidence']:.2f}%)")
+                    
             else:
-                st.error("Failed to extract text from the invoice. Please check the API or try again later.")
+                st.error("Error analyzing document. Please try again.")
