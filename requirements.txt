@@ -1,2 +1,6 @@
+streamlit
+requests
+pandas
+Pillow
 pdf2image
-audio_recorder_streamlit
+audio-recorder-streamlit
